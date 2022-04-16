@@ -41,7 +41,7 @@ const App = (): JSX.Element => {
   // display form
   const DisplayForm = () => (
     <div>
-      <input type="file" onChange={onFileChange} key={inputKey || ''} />
+      <input type="file" accept="image/png" onChange={onFileChange} key={inputKey || ''} />
       <button type="submit" onClick={onFileUpload}>
         Upload!
           </button>
