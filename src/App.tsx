@@ -7,22 +7,48 @@ import {
   isStorageConfigured,
   uploadFileToBlob,
   deleteFileFromContainer,
+  saveBufferToBucket,
 } from "./azure-storage-blob";
+
+import ImagePicker from "react-image-picker";
+
+import "react-image-picker/dist/index.css";
+
+import axios from "axios";
+
+const avatarList = [
+  "https://imagetestinderpal.blob.core.windows.net/tutorial-container/image_cat.png",
+  "https://imagetestinderpal.blob.core.windows.net/tutorial-container/image_fox.png",
+  "https://imagetestinderpal.blob.core.windows.net/tutorial-container/image_koala.png",
+  "https://imagetestinderpal.blob.core.windows.net/tutorial-container/image_monkey.png",
+  "https://imagetestinderpal.blob.core.windows.net/tutorial-container/image_mouse.png",
+  "https://imagetestinderpal.blob.core.windows.net/tutorial-container/image_octopus.png",
+];
 
 const storageConfigured = isStorageConfigured();
 
 const App = (): JSX.Element => {
   useEffect(() => {
     getAllFiles();
+
+    showAvatar();
   }, []);
 
   // all blobs in container
   const [blobList, setBlobList] = useState<string[]>([]);
 
+  const [imageList, setImageList] = useState<string[]>([]);
+
+  const showAvatar = async () => {
+    setImageList(avatarList);
+  };
+
   // current file to upload into container
   const [fileSelected, setFileSelected] = useState(null);
 
   const [remoteParticipantID, setRemoteParticipantID] = useState("");
+  const [imageNameToSave, setImageNameToSave] = useState("");
+  const [imagePathSelected, setImagePathSelected] = useState("");
 
   // UI/form management
   const [uploading, setUploading] = useState(false);
@@ -33,9 +59,36 @@ const App = (): JSX.Element => {
     setFileSelected(event.target.files[0]);
   };
 
+  const onImageNameChange = (event: any) => {
+    // capture file into state
+    setImageNameToSave(event.target.value);
+  };
+
   const onIDChange = (event: any) => {
     // capture file into state
     setRemoteParticipantID(event.target.value);
+  };
+
+  const onSaveAvatar = async (event: any) => {
+    if (imagePathSelected && imageNameToSave) {
+      const response = await axios.get(imagePathSelected, {
+        responseType: "arraybuffer",
+      });
+
+      const blobsInContainer: string[] = await saveBufferToBucket(
+        Buffer.from(response.data, "base64").buffer,
+        imageNameToSave + ".png"
+      );
+
+      // prepare UI for results
+      setBlobList(blobsInContainer);
+
+      // reset state/form
+      setFileSelected(null);
+      setUploading(false);
+      setInputKey(Math.random().toString(36));
+      setImageNameToSave("");
+    }
   };
 
   const onRemoveSpecialCharacter = (event: any) => {
@@ -145,11 +198,29 @@ const App = (): JSX.Element => {
 
   return (
     <div>
-      <h1>Upload file to Azure Blob Storage</h1>
-      {storageConfigured && !uploading && DisplayForm()}
       <h2>Convert remote participant ID to valid file name</h2>
       {DisplayRemovingSpecialCharacter()}
+      <hr />
+      <h2>Choose Avatar</h2>
+      <ImagePicker
+        images={imageList.map((image, i) => ({ src: image, value: i }))}
+        onPick={(image) => {
+          setImagePathSelected(image.src);
+        }}
+      />
+      <input
+        type="text"
+        style={{ margin: 10, width: 800 }}
+        onChange={onImageNameChange}
+        value={imageNameToSave}
+      />
+      <button type="submit" onClick={onSaveAvatar}>
+        Upload avatar with name
+      </button>
+      <hr />
+      <h2>Select image from device</h2>
       {storageConfigured && uploading && <div>Uploading</div>}
+      {storageConfigured && !uploading && DisplayForm()}
       <hr />
       {storageConfigured && blobList.length > 0 && DisplayImagesFromContainer()}
       {!storageConfigured && <div>Storage is not configured.</div>}
