@@ -163,7 +163,7 @@ const App = (): JSX.Element => {
         value={remoteParticipantID}
       />
       <button type="submit" onClick={onRemoveSpecialCharacter}>
-        Remove Special Characters!
+        Remove : and - from ID!
       </button>
     </div>
   );
