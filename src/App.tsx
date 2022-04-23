@@ -1,17 +1,25 @@
 // ./src/App.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Path from 'path';
-import uploadFileToBlob, { isStorageConfigured } from './azure-storage-blob';
+import  { getAllFilesFromBlob, isStorageConfigured, uploadFileToBlob } from './azure-storage-blob';
 
 const storageConfigured = isStorageConfigured();
 
 const App = (): JSX.Element => {
+
+  useEffect(() => {
+    getAllFiles()
+  }, []);
+
   // all blobs in container
   const [blobList, setBlobList] = useState<string[]>([]);
 
   // current file to upload into container
   const [fileSelected, setFileSelected] = useState(null);
+
+  const [remoteParticipantID, setRemoteParticipantID] = useState("");
+
 
   // UI/form management
   const [uploading, setUploading] = useState(false);
@@ -21,6 +29,29 @@ const App = (): JSX.Element => {
     // capture file into state
     setFileSelected(event.target.files[0]);
   };
+
+  const onIDChange = (event: any) => {
+    // capture file into state
+    setRemoteParticipantID(event.target.value);
+  };
+
+  const onRemoveSpecialCharacter = (event: any) => {
+    // capture file into state
+    setRemoteParticipantID(remoteParticipantID.replace(/[:-]/g, ''));
+  };
+
+  const getAllFiles = async () => {
+     // *** UPLOAD TO AZURE STORAGE ***
+     const blobsInContainer: string[] = await getAllFilesFromBlob();
+
+     // prepare UI for results
+     setBlobList(blobsInContainer);
+ 
+     // reset state/form
+     setFileSelected(null);
+     setUploading(false);
+     setInputKey(Math.random().toString(36));
+  }
 
   const onFileUpload = async () => {
     // prepare UI
@@ -44,6 +75,16 @@ const App = (): JSX.Element => {
       <input type="file" accept="image/png" onChange={onFileChange} key={inputKey || ''} />
       <button type="submit" onClick={onFileUpload}>
         Upload!
+          </button>
+    </div>
+  )
+
+  // display form
+  const DisplayRemovingSpecialCharacter = () => (
+    <div>
+      <input type="text" style={{margin: 10, width:800}} onChange={onIDChange} value={remoteParticipantID} />
+      <button type="submit" onClick={onRemoveSpecialCharacter}>
+        Remove Special Characters!
           </button>
     </div>
   )
@@ -72,6 +113,8 @@ const App = (): JSX.Element => {
     <div>
       <h1>Upload file to Azure Blob Storage</h1>
       {storageConfigured && !uploading && DisplayForm()}
+      <h2>Convert remote participant ID to valid file name</h2>
+      {DisplayRemovingSpecialCharacter()}
       {storageConfigured && uploading && <div>Uploading</div>}
       <hr />
       {storageConfigured && blobList.length > 0 && DisplayImagesFromContainer()}
