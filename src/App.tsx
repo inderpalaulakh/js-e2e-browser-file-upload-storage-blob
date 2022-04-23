@@ -1,15 +1,19 @@
 // ./src/App.tsx
 
-import React, { useState, useEffect } from 'react';
-import Path from 'path';
-import  { getAllFilesFromBlob, isStorageConfigured, uploadFileToBlob } from './azure-storage-blob';
+import React, { useState, useEffect } from "react";
+import Path from "path";
+import {
+  getAllFilesFromBlob,
+  isStorageConfigured,
+  uploadFileToBlob,
+  deleteFileFromContainer,
+} from "./azure-storage-blob";
 
 const storageConfigured = isStorageConfigured();
 
 const App = (): JSX.Element => {
-
   useEffect(() => {
-    getAllFiles()
+    getAllFiles();
   }, []);
 
   // all blobs in container
@@ -19,7 +23,6 @@ const App = (): JSX.Element => {
   const [fileSelected, setFileSelected] = useState(null);
 
   const [remoteParticipantID, setRemoteParticipantID] = useState("");
-
 
   // UI/form management
   const [uploading, setUploading] = useState(false);
@@ -37,21 +40,34 @@ const App = (): JSX.Element => {
 
   const onRemoveSpecialCharacter = (event: any) => {
     // capture file into state
-    setRemoteParticipantID(remoteParticipantID.replace(/[:-]/g, ''));
+    setRemoteParticipantID(remoteParticipantID.replace(/[:-]/g, ""));
+  };
+
+  const onDeleteFile = async (file: string) => {
+    // *** UPLOAD TO AZURE STORAGE ***
+    const blobsInContainer: string[] = await deleteFileFromContainer(file);
+
+    // prepare UI for results
+    setBlobList(blobsInContainer);
+
+    // reset state/form
+    setFileSelected(null);
+    setUploading(false);
+    setInputKey(Math.random().toString(36));
   };
 
   const getAllFiles = async () => {
-     // *** UPLOAD TO AZURE STORAGE ***
-     const blobsInContainer: string[] = await getAllFilesFromBlob();
+    // *** UPLOAD TO AZURE STORAGE ***
+    const blobsInContainer: string[] = await getAllFilesFromBlob();
 
-     // prepare UI for results
-     setBlobList(blobsInContainer);
- 
-     // reset state/form
-     setFileSelected(null);
-     setUploading(false);
-     setInputKey(Math.random().toString(36));
-  }
+    // prepare UI for results
+    setBlobList(blobsInContainer);
+
+    // reset state/form
+    setFileSelected(null);
+    setUploading(false);
+    setInputKey(Math.random().toString(36));
+  };
 
   const onFileUpload = async () => {
     // prepare UI
@@ -72,22 +88,32 @@ const App = (): JSX.Element => {
   // display form
   const DisplayForm = () => (
     <div>
-      <input type="file" accept="image/png" onChange={onFileChange} key={inputKey || ''} />
+      <input
+        type="file"
+        accept="image/png"
+        onChange={onFileChange}
+        key={inputKey || ""}
+      />
       <button type="submit" onClick={onFileUpload}>
         Upload!
-          </button>
+      </button>
     </div>
-  )
+  );
 
   // display form
   const DisplayRemovingSpecialCharacter = () => (
     <div>
-      <input type="text" style={{margin: 10, width:800}} onChange={onIDChange} value={remoteParticipantID} />
+      <input
+        type="text"
+        style={{ margin: 10, width: 800 }}
+        onChange={onIDChange}
+        value={remoteParticipantID}
+      />
       <button type="submit" onClick={onRemoveSpecialCharacter}>
         Remove Special Characters!
-          </button>
+      </button>
     </div>
-  )
+  );
 
   // display file name and image
   const DisplayImagesFromContainer = () => (
@@ -102,6 +128,14 @@ const App = (): JSX.Element => {
                 <br />
                 <img src={item} alt={item} height="200" />
               </div>
+              <button
+                type="submit"
+                onClick={() => {
+                  onDeleteFile(Path.basename(item));
+                }}
+              >
+                Delete
+              </button>
             </li>
           );
         })}
@@ -124,5 +158,3 @@ const App = (): JSX.Element => {
 };
 
 export default App;
-
-
